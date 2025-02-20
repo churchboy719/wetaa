@@ -1,0 +1,34 @@
+/my-app
+│── /public               # Static assets (favicons, images, etc.)
+│── /src
+│   ├── /app              # Next.js App Router structure
+│   │   ├── /(public)     # Public routes like home, about, contact
+│   │   ├── /(vendor)     # Vendor-specific pages
+│   │   ├── /(dashboard)  # Admin and cashier dashboard
+│   │   ├── /api          # API routes
+│   │   │   ├── /auth     # NextAuth.js authentication
+│   │   │   ├── /orders   # Order management (CRUD)
+│   │   │   ├── /vendors  # Vendor management (CRUD)
+│   │   │   ├── /chat     # Chat APIs using Socket.IO
+│   │   ├── /components   # Reusable UI components
+│   │   │   ├── Navbar.tsx
+│   │   │   ├── Hero.tsx
+│   │   │   ├── Carousel.tsx
+│   │   │   ├── ProductCard.tsx
+│   │   │   ├── Cart.tsx
+│   │   │   ├── Chat.tsx
+│   │   │   ├── Invoice.tsx
+│   │   ├── /hooks        # Custom hooks (e.g., useCart, useAuth)
+│   │   ├── /redux        # Redux store & slices
+│   │   │   ├── store.ts
+│   │   │   ├── cartSlice.ts
+│   │   │   ├── chatSlice.ts
+│   │   ├── /utils        # Utility functions
+│   │   ├── /types        # TypeScript types
+│   ├── /styles          # Global & component-specific styles
+│   ├── /config          # Environment variables, constants
+│── next.config.js        # Next.js config
+│── tailwind.config.js    # Tailwind CSS config
+│── tsconfig.json         # TypeScript config
+│── package.json          # Dependencies
+│── .env.local            # Environment variables
