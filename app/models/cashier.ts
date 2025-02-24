@@ -42,7 +42,7 @@ export interface ICashier extends Document {
   role: string;
   active: boolean;
   canPost: boolean;
-  vendorId: Types.ObjectId; // Correctly typed as ObjectId
+  vendorId: mongoose.Types.ObjectId; // Correctly typed as ObjectId
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -55,7 +55,7 @@ const CashierSchema = new Schema<ICashier>(
     role: { type: String, default: "cashier" }, // Default role
     active: { type: Boolean, default: true }, // Whether the cashier is active
     canPost: { type: Boolean, default: false }, // Whether posting is allowed
-    vendorId: { type: Schema.Types.ObjectId, ref: "Vendor", required: true }, // Correct ObjectId reference
+    vendorId: { type: mongoose.Schema.Types.ObjectId, ref: "Vendor", required: true }, // Correct ObjectId reference
   },
   { timestamps: true }
 );

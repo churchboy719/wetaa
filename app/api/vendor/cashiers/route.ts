@@ -1,60 +1,120 @@
+// import { NextResponse } from "next/server";
+// import { connectDB } from "@/app/lib/mongodb";
+// import Cashier from "@/app/models/cashier";
+// import bcrypt from "bcryptjs";
+
+// ✅ Create a new cashier (POST)
+// export async function POST(req: Request) {
+//   try {
+//     await connectDB();
+//     const { name, email, password, vendorId } = await req.json();
+
+//     // Validate request
+//     if (!name || !email || !password || !vendorId) {
+//       return NextResponse.json({ error: "All fields are required" }, { status: 400 });
+//     }
+
+//     // Check for duplicate email
+//     const existingCashier = await Cashier.findOne({ email });
+//     if (existingCashier) {
+//       return NextResponse.json({ error: "Email already in use" }, { status: 400 });
+//     }
+
+//     // Hash password
+//     const hashedPassword = await bcrypt.hash(password, 10);
+//     const newCashier = new Cashier({ name, email, password: hashedPassword, vendorId });
+
+//     // Save to DB
+//     await newCashier.save();
+//     return NextResponse.json({ message: "Cashier created successfully", cashier: newCashier }, { status: 201 });
+
+//   } catch (error: any) {
+//     console.error("Error creating cashier:", error);
+//     return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+//   }
+// }
+
 import { NextResponse } from "next/server";
 import { connectDB } from "@/app/lib/mongodb";
 import Cashier from "@/app/models/cashier";
 import bcrypt from "bcryptjs";
+import mongoose from "mongoose";
 
-// ✅ Create a new cashier (POST)
+// export async function POST(req: Request) {
+//   try {
+//     await connectDB();
+//     const { name, email, password, vendorId } = await req.json();
+
+//     if (!vendorId) {
+//       return NextResponse.json({ error: "Vendor ID is required" }, { status: 400 });
+//     }
+
+//     // Convert vendorId to ObjectId
+//     if (!mongoose.Types.ObjectId.isValid(vendorId)) {
+//       return NextResponse.json({ error: "Invalid Vendor ID" }, { status: 400 });
+//     }
+
+//     const hashedPassword = await bcrypt.hash(password, 10);
+//     const newCashier = new Cashier({
+//       name,
+//       email,
+//       password: hashedPassword,
+//       vendorId: new mongoose.Types.ObjectId(vendorId), // Convert vendorId to ObjectId
+//     });
+
+//     await newCashier.save();
+//     return NextResponse.json({ message: "Cashier created successfully", cashier: newCashier }, { status: 201 });
+
+//   } catch (error: any) {
+//     console.error("Error creating cashier:", error);
+//     return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+//   }
+// }
+
 export async function POST(req: Request) {
   try {
     await connectDB();
     const { name, email, password, vendorId } = await req.json();
 
-    // Validate request
-    if (!name || !email || !password || !vendorId) {
-      return NextResponse.json({ error: "All fields are required" }, { status: 400 });
+    if (!vendorId || !mongoose.Types.ObjectId.isValid(vendorId)) {
+      return NextResponse.json({ error: "Invalid Vendor ID" }, { status: 400 });
     }
 
-    // Check for duplicate email
-    const existingCashier = await Cashier.findOne({ email });
-    if (existingCashier) {
-      return NextResponse.json({ error: "Email already in use" }, { status: 400 });
-    }
+    const objectIdVendorId = new mongoose.Types.ObjectId(vendorId); // ✅ Convert to ObjectId
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newCashier = new Cashier({ name, email, password: hashedPassword, vendorId });
+    const newCashier = new Cashier({ name, email, password: hashedPassword, vendorId: objectIdVendorId });
 
-    // Save to DB
     await newCashier.save();
     return NextResponse.json({ message: "Cashier created successfully", cashier: newCashier }, { status: 201 });
-
-  } catch (error: any) {
-    console.error("Error creating cashier:", error);
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+  } catch (error) {
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
+
 
 // ✅ Get all cashiers for a vendor (GET)
 export async function GET(req: Request) {
   try {
     await connectDB();
-    
-    // Extract vendorId from query params
+
     const { searchParams } = new URL(req.url);
     const vendorId = searchParams.get("vendorId");
 
-    if (!vendorId) {
-      return NextResponse.json({ error: "Vendor ID is required" }, { status: 400 });
+    if (!vendorId || !mongoose.Types.ObjectId.isValid(vendorId)) {
+      return NextResponse.json({ error: "Invalid Vendor ID" }, { status: 400 });
     }
 
-    const cashiers = await Cashier.find({ vendorId });
-    return NextResponse.json({ cashiers }, { status: 200 });
+    const objectIdVendorId = new mongoose.Types.ObjectId(vendorId);
 
-  } catch (error: any) {
-    console.error("Error fetching cashiers:", error);
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    const cashiers = await Cashier.find({ vendorId: objectIdVendorId });
+
+    return NextResponse.json({ cashiers }, { status: 200 });
+  } catch (error) {
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
+
 
 // ✅ Delete a cashier (DELETE)
 export async function DELETE(req: Request) {

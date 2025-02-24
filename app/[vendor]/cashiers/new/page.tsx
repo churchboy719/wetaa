@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import mongoose from "mongoose";
 
 export default function AddCashier() {
   const { data: session, status }: any = useSession();
@@ -21,19 +22,35 @@ export default function AddCashier() {
   const handleSubmit = async (e: any) => {
     e.preventDefault();
 
-    if (!vendorId) {
-      alert("Vendor ID is missing!");
+    // if (!vendorId) {
+    //   alert("Vendor ID is missing!");
+    //   return;
+    // }
+
+
+    if (!vendorId || !mongoose.Types.ObjectId.isValid(vendorId)) {
+      alert("Invalid Vendor ID!");
+      console.error("Invalid vendorId:", vendorId);
       return;
     }
 
-    const res = await fetch("/api/vendor/cashiers", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...formData, vendorId }),
-    });
+    console.log("Submitting Data:", { ...formData, vendorId });
 
-    if (res.ok) router.push("/vendor/dashboard");
-    else alert("Failed to add cashier.");
+    const objectIdVendorId = new mongoose.Types.ObjectId(vendorId); // ✅ Convert to ObjectId
+
+     const res = await fetch("/api/vendor/cashiers", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    //body: JSON.stringify({ ...formData, vendorId: vendorId.trim() }), // Ensure no spaces
+    body: JSON.stringify({ ...formData, vendorId: objectIdVendorId }),
+  });
+
+  if (res.ok) router.push("/vendor/dashboard");
+  else {
+    const errorText = await res.text();
+    console.error("Failed to add cashier:", errorText);
+    alert(`Error: ${errorText}`);
+  }
   };
 
   return (

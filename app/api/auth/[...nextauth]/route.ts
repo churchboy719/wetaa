@@ -7,6 +7,7 @@ import bcrypt from "bcryptjs";
 import { clientPromise } from "@/app/lib/mongodb";
 import NextAuth from "next-auth";
 import type { SessionStrategy } from "next-auth";
+import mongoose from "mongoose";
 
 connectDB();
 
@@ -45,23 +46,43 @@ export const authOptions = {
       }
     })
   ],
+  // callbacks: {
+  //   async jwt({ token, user }:any) {
+  //     if (user) {
+  //       //token.vendorId = user.vendorId ? String(user.vendorId) : undefined; // Avoid setting null
+  //       token.vendorId = user.vendorId ? new mongoose.Types.ObjectId(user.vendorId):undefined
+  //       token.role = user.role || "cashier"; // Ensure role exists
+  //     }
+  //     return token;
+  //   },
+  //   async session({ session, token }:any) {
+  //     if (token.vendorId) {
+  //       session.user.vendorId = token.vendorId;
+  //     }
+  //     session.user.role = token.role || "cashier"; // Ensure role exists
+  //     return session;
+  //   }
+  // },
+    
   callbacks: {
-    async jwt({ token, user }:any) {
+    async jwt({ token, user }: any) {
       if (user) {
-        token.vendorId = user.vendorId ? user.vendorId : undefined; // Avoid setting null
-        token.role = user.role || "cashier"; // Ensure role exists
+        // ✅ Ensure vendorId is a valid ObjectId before converting
+        token.vendorId = mongoose.Types.ObjectId.isValid(user.vendorId) ? 
+        new mongoose.Types.ObjectId(user.vendorId) : undefined;
+          
+        token.role = user.role || "cashier"; // ✅ Include role
       }
       return token;
     },
-    async session({ session, token }:any) {
-      if (token.vendorId) {
-        session.user.vendorId = token.vendorId;
-      }
-      session.user.role = token.role || "cashier"; // Ensure role exists
+    async session({ session, token }: any) {
+      session.user.vendorId = token.vendorId?.toString() 
+      //|| null; // ✅ Convert back to string for frontend use
+      session.user.role = token.role || "cashier";
       return session;
     }
   },
-    
+
   session: {
     strategy: "jwt" as SessionStrategy,
   },

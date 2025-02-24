@@ -266,6 +266,7 @@ export default function VendorDashboard() {
 
       {/* Navigation Buttons */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+        <DashboardButton href="/vendor/cashiers/new " text="Add New" color="brown" />
         <DashboardButton href="/vendor/home" text="Home View" color="blue" />
         <DashboardButton href="/vendor/cashiers" text="Cashiers" color="red" />
         <DashboardButton href="/vendor/blog" text="Blog" color="green" />
