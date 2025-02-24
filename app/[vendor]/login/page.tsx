@@ -25,6 +25,7 @@ export default function VendorLogin() {
       setError(result.error);
     } else {
       router.push("/vendor/dashboard");
+      //window.location.reload(); // ✅ Forces session to refresh
     }
   };
 
@@ -33,7 +34,7 @@ export default function VendorLogin() {
       <h1 className="text-2xl font-bold mb-4">Vendor Login</h1>
       {error && <p className="text-red-500">{error}</p>}
       <form onSubmit={handleSubmit} className="space-y-4">
-        <input type="email" name="email" placeholder="Email" className="w-full p-2 border rounded" onChange={handleChange} required />
+        <input type="email" name="email" placeholder="Email" className="w-full p-2 border rounded text-black" onChange={handleChange} required />
         <input type="password" name="password" placeholder="Password" className="w-full p-2 border rounded" onChange={handleChange} required />
         <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded">Login</button>
       </form>

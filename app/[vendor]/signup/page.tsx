@@ -69,15 +69,15 @@ export default function VendorSignup() {
       <input type="text" name="businessName" placeholder="Business Name" required onChange={handleChange} />
       <input type="text" name="address" placeholder="Business Address" required onChange={handleChange} />
       <input type="text" name="businessType" placeholder="Business Type" required onChange={handleChange} />
-      <input type="email" name="email" placeholder="Email" className="w-full p-2 border rounded" onChange={handleChange} required />
-      <input type="password" name="password" placeholder="Password" className="w-full p-2 border rounded" onChange={handleChange} required />
-      <input type="text" name="phone" placeholder="Phone Number" className="w-full p-2 border rounded" onChange={handleChange} required />
-        <select name="packageType" className="w-full p-2 border rounded" onChange={handleChange} required>
+      <input type="email" name="email" placeholder="Email" className="w-full p-2 border rounded text-black" onChange={handleChange} required />
+      <input type="password" name="password" placeholder="Password" className="w-full p-2 border rounded text-black" onChange={handleChange} required />
+      <input type="text" name="phone" placeholder="Phone Number" className="w-full p-2 border rounded text-black" onChange={handleChange} required />
+        <select name="packageType" className="w-full p-2 border rounded text-black" onChange={handleChange} required>
           <option value="Professional">Professional - $50</option>
           <option value="Premium">Premium - $100</option>
         </select>
         <p className="text-gray-600">Amount to be Paid: ${amount}</p>
-        <input type="text" name="voucherCode" placeholder="Voucher Code" className="w-full p-2 border rounded" onChange={handleChange} required />
+        <input type="text" name="voucherCode" placeholder="Voucher Code" className="w-full p-2 border rounded text-black" onChange={handleChange} required />
         <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded">Register</button>
       </form>
     </div>
