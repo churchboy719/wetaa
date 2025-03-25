@@ -1,287 +1,202 @@
-// // // src/app/vendor/dashboard/page.tsx (Vendor Dashboard UI with Auth Protection)
-// // "use client";
-// // import { useSession } from "next-auth/react";
-// // import { useEffect, useState } from "react";
-// // import { useRouter } from "next/navigation";
-// // import Link from "next/link";
-
-// // type Cashier = {
-// //   _id: string;
-// //   name: string;
-// //   email: string;
-// // };
-
-// // export default function VendorDashboard() {
-// //   const { data: session, status }:any = useSession();
-// //   const router = useRouter();
-// //   const [vendor, setVendor] = useState<any>(null);
-// //   const [cashiers, setCashiers] = useState<Cashier[]>([]);
-// //   const [chatMessages, setChatMessages] = useState([]);
-
-// //     useEffect(() => {
-// //     if (status === "unauthenticated" || session?.user.role !== "vendor") {
-// //       router.push("/vendor/login");
-// //     }
-// //   }, [status, session, router]);
-
-// //   useEffect(() => {
-// //     async function fetchVendor() {
-// //       if (session?.user?.email) {
-// //         const res = await fetch(`/api/vendor?email=${session.user.email}`);
-// //         const data = await res.json();
-// //         setVendor(data.vendor);
-// //       }
-// //     }
-// //     fetchVendor();
-// //   }, [session]);
-
-// //   useEffect(() => {
-// //     async function fetchCashiers() {
-// //       if (vendor) {
-// //         const res = await fetch(`/api/vendor/cashiers?vendorId=${vendor._id}`);
-// //         const data = await res.json();
-// //         setCashiers(data.cashiers);
-// //       }
-// //     }
-// //     fetchCashiers();
-// //   }, [vendor]);
-
-// //   const handleDeleteCashier = async (cashierId:any) => {
-// //     await fetch(`/api/vendor/cashiers/${cashierId}`, { method: "DELETE" });
-// //     setCashiers(cashiers.filter(cashier => cashier._id !== cashierId));
-// //   };
-
-// //   if (status === "loading") return <p>Loading...</p>;
-
-// //   return (
-// //     <div className="p-6 max-w-5xl mx-auto">
-// //       <h1 className="text-2xl font-bold">Welcome, {vendor?.fullName}!</h1>
-// //       <p className="mt-2">Manage your business, cashiers, and posts here.</p>
-      
-// //       {/* Cashier Management */}
-// //       <section className="mt-6">
-// //         <h2 className="text-xl font-bold">Cashiers</h2>
-// //         <Link href="/vendor/cashiers/new" className="bg-blue-600 text-white px-4 py-2 rounded">Add New Cashier</Link>
-// //         <ul className="mt-4 space-y-2">
-// //           {cashiers.map((cashier:any) => (
-// //             <li key={cashier._id} className="p-2 border rounded flex justify-between">
-// //               {cashier.name} ({cashier.email})
-// //               <button onClick={() => handleDeleteCashier(cashier._id)} className="text-red-600">Delete</button>
-// //             </li>
-// //           ))}
-// //         </ul>
-// //       </section>
-
-// //       {/* Group Chat */}
-// //       <section className="mt-6">
-// //         <h2 className="text-xl font-bold">Group Chat</h2>
-// //         <div className="border p-4 rounded h-60 overflow-y-scroll">
-// //           {chatMessages.map((msg:any, idx) => (
-// //             <p key={idx}><strong>{msg.sender}:</strong> {msg.text}</p>
-// //           ))}
-// //         </div>
-// //       </section>
-
-// //       {/* Blog Management */}
-// //       <section className="mt-6">
-// //         <h2 className="text-xl font-bold">Manage Blog</h2>
-// //         <Link href="/vendor/blog/new" className="bg-green-600 text-white px-4 py-2 rounded">Create New Post</Link>
-// //       </section>
-
-// //       {/* Navbar Management */}
-// //       <section className="mt-6">
-// //         <h2 className="text-xl font-bold">Navbar Management</h2>
-// //         <Link href="/vendor/navbar" className="bg-gray-600 text-white px-4 py-2 rounded">Edit Navbar</Link>
-// //       </section>
-// //     </div>
-// //   );
-// // }
-
 
 // "use client";
+
 // import { useSession } from "next-auth/react";
 // import { useEffect, useState } from "react";
 // import { useRouter } from "next/navigation";
-// import Link from "next/link";
+// import AddCashier from "@/app/components/AddCashier";
+// import Blog from "@/app/components/Blog";
+// import HomeView from "@/app/components/HomeView";
+// import CashiersPage from "@/app/components/Cashiers";
+// import GroupChat from "@/app/components/GroupChat";
+// import Cart from "@/app/components/Cart";
+// import GenerateQRCode from "@/app/components/GenerateQRCode";
 
-// type Cashier = {
-//   _id: string;
-//   name: string;
-//   email: string;
-// };
+// type Page = "group-chat" | "cashiers" | "add-cashier" | "home" | "blog" | "cart" | "generateQRCode";
 
 // export default function VendorDashboard() {
-//   const { data: session, status }:any = useSession();
+//   const { data: session, status } = useSession();
 //   const router = useRouter();
-//   const [vendor, setVendor] = useState<any>(null);
-//   const [cashiers, setCashiers] = useState<Cashier[]>([]);
-//   const [chatMessages, setChatMessages] = useState([]);
+//   const [activePage, setActivePage] = useState<Page>("group-chat");
+//   const [copied, setCopied] = useState(false);
 
-//   // ✅ Only redirect *after* session finishes loading
-//   // useEffect(() => {
-//   //   if (status === "authenticated") {
-//   //     if (session?.user.role !== "vendor") {
-//   //       router.push("/vendor/login");
-//   //     }
-//   //   } else if (status === "unauthenticated") {
-//   //     router.push("/vendor/login");
-//   //   }
-//   // }, [status, session, router]);
-
+//   // Prevent redirection until session status is determined
 //   useEffect(() => {
-//     if (status === "loading") return; // 🚀 Wait until session loads
-  
-//     if (status === "unauthenticated") {
-//       router.push("/vendor/login");
-//       return;
-//     }
-  
-//     if (status === "authenticated" && session?.user?.role !== "vendor") {
-//       return;
-//       // router.push("/vendor/login");
-//     }
-//   }, [status, session, router]);
-  
-
-//   useEffect(() => {
-//     async function fetchVendor() {
-//       if (session?.user?.email) {
-//         const res = await fetch(`/api/vendor?email=${session.user.email}`);
-//         const data = await res.json();
-//         setVendor(data.vendor);
+//     if (status === "authenticated" && session?.user?.role) {
+//       if (session.user.role !== "vendor") {
+//         router.replace("/vendor/login");
 //       }
+//     } else if (status === "unauthenticated") {
+//       router.replace("/vendor/login");
 //     }
-//     fetchVendor();
-//   }, [session]);
+//   }, [status, session?.user?.role, router]);
 
-//   useEffect(() => {
-//     async function fetchCashiers() {
-//       if (vendor) {
-//         const res = await fetch(`/api/vendor/cashiers?vendorId=${vendor._id}`);
-//         const data = await res.json();
-//         setCashiers(data.cashiers);
-//       }
-//     }
-//     fetchCashiers();
-//   }, [vendor]);
 
-//   const handleDeleteCashier = async (cashierId: any) => {
-//     await fetch(`/api/vendor/cashiers/${cashierId}`, { method: "DELETE" });
-//     setCashiers(cashiers.filter((cashier) => cashier._id !== cashierId));
-//   };
-
-//   // ✅ Prevent rendering while session is still loading
+//   // Prevent rendering until session status is determined
 //   if (status === "loading") return <p>Loading...</p>;
 
+
+//   // Function to copy the cart link
+//   const handleCopyLink = () => {
+//     const cartLink = `${window.location.origin}/customer/cart`;
+//     navigator.clipboard.writeText(cartLink);
+//     setCopied(true);
+//     setTimeout(() => setCopied(false), 2000);
+//   };
+
 //   return (
-//     <div className="p-6 max-w-5xl mx-auto">
-//       <h1 className="text-2xl font-bold">Welcome, {vendor?.fullName}!</h1>
-//       <p className="mt-2">Manage your business, cashiers, and posts here.</p>
+//     <div className="flex h-screen">
+//       {/* Sidebar */}
+//       <aside className="w-1/4 bg-gray-900 text-white p-6 flex flex-col">
+//         <h2 className="text-xl font-bold mb-6 text-white">Vendor Dashboard</h2>
+//         <nav className="flex flex-col gap-3">
+//           <SidebarButton text="Group Chat" onClick={() => setActivePage("group-chat")} active={activePage === "group-chat"} />
+//           <SidebarButton text="Cashiers" onClick={() => setActivePage("cashiers")} active={activePage === "cashiers"} />
+//           <SidebarButton text="Add New Cashier" onClick={() => setActivePage("add-cashier")} active={activePage === "add-cashier"} />
+//           <SidebarButton text="Home View" onClick={() => setActivePage("home")} active={activePage === "home"} />
+//           <SidebarButton text="Blog" onClick={() => setActivePage("blog")} active={activePage === "blog"} />
+//           <SidebarButton text="Cart" onClick={() => setActivePage("cart")} active={activePage === "cart"} />
+//           <SidebarButton text="Generate QR Code" onClick={() => setActivePage("generateQRCode")} active={activePage === "generateQRCode"} />
+//         </nav>
+//       </aside>
 
-//       {/* Cashier Management */}
-//       <section className="mt-6">
-//         <h2 className="text-xl font-bold">Cashiers</h2>
-//         <Link href="/vendor/cashiers/new" className="bg-blue-600 text-white px-4 py-2 rounded">
-//           Add New Cashier
-//         </Link>
-//         <ul className="mt-4 space-y-2">
-//           {cashiers.map((cashier: any) => (
-//             <li key={cashier._id} className="p-2 border rounded flex justify-between">
-//               {cashier.name} ({cashier.email})
-//               <button onClick={() => handleDeleteCashier(cashier._id)} className="text-red-600">
-//                 Delete
-//               </button>
-//             </li>
-//           ))}
-//         </ul>
-//       </section>
+//       {/* Main Content */}
+//       <main className="w-3/4 p-6 bg-gray-100">
+//         {activePage === "group-chat" && <GroupChat />}
+//         {activePage === "cashiers" && <CashiersPage />}
+//         {activePage === "add-cashier" && <AddCashier />}
+//         {activePage === "home" && <HomeView />}
+//         {activePage === "blog" && <Blog />}
+//         {activePage === "cart" && (
+//           <div>
+//             {/* Copy Cart Link Button */}
+//             <button
+//               onClick={handleCopyLink}
+//               className="mb-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+//             >
+//               Copy Cart Link
+//             </button>
 
-//       {/* Group Chat */}
-//       <section className="mt-6">
-//         <h2 className="text-xl font-bold">Group Chat</h2>
-//         <div className="border p-4 rounded h-60 overflow-y-scroll">
-//           {chatMessages.map((msg: any, idx) => (
-//             <p key={idx}>
-//               <strong>{msg.sender}:</strong> {msg.text}
-//             </p>
-//           ))}
-//         </div>
-//       </section>
+//             {/* Success Message */}
+//             {copied && <p className="text-green-600 mt-2">Copied to clipboard!</p>}
 
-//       {/* Blog Management */}
-//       <section className="mt-6">
-//         <h2 className="text-xl font-bold">Manage Blog</h2>
-//         <Link href="/vendor/blog/new" className="bg-green-600 text-white px-4 py-2 rounded">
-//           Create New Post
-//         </Link>
-//       </section>
-
-//       {/* Navbar Management */}
-//       <section className="mt-6">
-//         <h2 className="text-xl font-bold">Navbar Management</h2>
-//         <Link href="/vendor/navbar" className="bg-gray-600 text-white px-4 py-2 rounded">
-//           Edit Navbar
-//         </Link>
-//       </section>
+//             {/* Cart Component */}
+//             <Cart />
+//           </div>
+//         )}
+//         {activePage === "generateQRCode" && <GenerateQRCode />}
+//       </main>
 //     </div>
 //   );
 // }
 
+// // Sidebar Button Component
+// const SidebarButton = ({ text, onClick, active }: { text: string; onClick: () => void; active: boolean }) => (
+//   <button
+//     className={`w-full text-left px-4 py-2 rounded-md transition ${
+//       active ? "bg-blue-600" : "hover:bg-gray-700"
+//     }`}
+//     onClick={onClick}
+//   >
+//     {text}
+//   </button>
+// );
+
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import AddCashier from "@/app/components/AddCashier";
+import Blog from "@/app/components/Blog";
+import HomeView from "@/app/components/HomeView";
+import CashiersPage from "@/app/components/Cashiers";
+import GroupChat from "@/app/components/GroupChat";
+import Cart from "@/app/components/Cart";
+import GenerateQRCode from "@/app/components/GenerateQRCode";
+import ManageProducts from "@/app/components/ManageProducts";
+
+type Page = "group-chat" | "cashiers" | "add-cashier" | "home" | "blog" | "cart" | "generateQRCode" | "manage-products";
 
 export default function VendorDashboard() {
-  const { data: session, status }:any = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
-
-  // Protect the dashboard: Only allow vendors
-  // useEffect(() => {
-  //   if (status === "loading") return;
-  //   if (status === "unauthenticated" || session?.user?.role !== "vendor") {
-  //     router.push("/vendor/login");
-  //   }
-  // }, [status, session, router]);
+  const [activePage, setActivePage] = useState<Page>("group-chat");
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-        if (status === "authenticated") {
-          if (session?.user.role !== "vendor") {
-            router.push("/vendor/login");
-          }
-        } else if (status === "unauthenticated") {
-          router.push("/vendor/login");
-        }
-      }, [status, session, router]);
+    if (status === "authenticated" && session?.user?.role) {
+      console.log("Session data:", session);
+        console.log("Vendor ID:", session?.user?.vendorId);
     
-           
+      if (session.user.role !== "vendor") {
+        router.replace("/vendor/login");
+      }
+    } else if (status === "unauthenticated") {
+      router.replace("/vendor/login");
+    }
+  }, [status, session?.user?.role, router]);
 
   if (status === "loading") return <p>Loading...</p>;
 
-  return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold">Vendor Dashboard</h1>
-      <p className="mt-2 text-gray-600">Manage your business and team here.</p>
+  const handleCopyLink = () => {
+    const cartLink = `${window.location.origin}/customer/cart`;
+    navigator.clipboard.writeText(cartLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
-      {/* Navigation Buttons */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-        <DashboardButton href="/vendor/cashiers/new " text="Add New" color="brown" />
-        <DashboardButton href="/vendor/home" text="Home View" color="blue" />
-        <DashboardButton href="/vendor/cashiers" text="Cashiers" color="red" />
-        <DashboardButton href="/vendor/blog" text="Blog" color="green" />
-        <DashboardButton href="/vendor/group-chat" text="Group Chat" color="purple" />
-      </div>
+  return (
+    <div className="flex h-screen">
+      {/* Sidebar */}
+      <aside className="w-1/4 bg-gray-900 text-white p-6 flex flex-col">
+        <h2 className="text-xl font-bold mb-6">Vendor Dashboard</h2>
+        <nav className="flex flex-col gap-3">
+          <SidebarButton text="Group Chat" onClick={() => setActivePage("group-chat")} active={activePage === "group-chat"} />
+          <SidebarButton text="Cashiers" onClick={() => setActivePage("cashiers")} active={activePage === "cashiers"} />
+          <SidebarButton text="Add New Cashier" onClick={() => setActivePage("add-cashier")} active={activePage === "add-cashier"} />
+          <SidebarButton text="Home View" onClick={() => setActivePage("home")} active={activePage === "home"} />
+          <SidebarButton text="Blog" onClick={() => setActivePage("blog")} active={activePage === "blog"} />
+          <SidebarButton text="Cart" onClick={() => setActivePage("cart")} active={activePage === "cart"} />
+          <SidebarButton text="Generate QR Code" onClick={() => setActivePage("generateQRCode")} active={activePage === "generateQRCode"} />
+          <SidebarButton text="Manage Products" onClick={() => setActivePage("manage-products")} active={activePage === "manage-products"} />
+        </nav>
+      </aside>
+
+      {/* Main Content */}
+      <main className="w-3/4 p-6 bg-gray-100">
+        {activePage === "group-chat" && <GroupChat />}
+        {activePage === "cashiers" && <CashiersPage />}
+        {activePage === "add-cashier" && <AddCashier />}
+        {activePage === "home" && <HomeView />}
+        {activePage === "blog" && <Blog />}
+        {activePage === "cart" && (
+          <div>
+            <button
+              onClick={handleCopyLink}
+              className="mb-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Copy Cart Link
+            </button>
+            {copied && <p className="text-green-600 mt-2">Copied to clipboard!</p>}
+            <Cart />
+          </div>
+        )}
+        {activePage === "generateQRCode" && <GenerateQRCode />}
+        {activePage === "manage-products" && <ManageProducts />}
+      </main>
     </div>
   );
 }
 
-// Reusable Button Component
-const DashboardButton = ({ href, text, color }: { href: string; text: string; color: string }) => (
-  <a
-    href={href}
-    className={`bg-${color}-600 hover:bg-${color}-700 text-white px-4 py-2 rounded-md text-center`}
+// Sidebar Button Component
+const SidebarButton = ({ text, onClick, active }: { text: string; onClick: () => void; active: boolean }) => (
+  <button
+    className={`w-full text-left px-4 py-2 rounded-md transition ${
+      active ? "bg-blue-600" : "hover:bg-gray-700"
+    }`}
+    onClick={onClick}
   >
     {text}
-  </a>
+  </button>
 );

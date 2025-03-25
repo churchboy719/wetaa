@@ -3,10 +3,9 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { MongoDBAdapter } from "@next-auth/mongodb-adapter";
 import {clientPromise} from "@/app/lib/mongodb"; // Ensure this uses `export default`
 import Vendor from "@/app/models/vendor";
-import User from "@/app/models/user";
+import Cashier from "@/app/models/cashier";
 import bcrypt from "bcryptjs";
 import { NextAuthOptions } from "next-auth";
-import mongoose from "mongoose";
 
 const authOptions: NextAuthOptions = {
   adapter: MongoDBAdapter(clientPromise),
@@ -24,7 +23,7 @@ const authOptions: NextAuthOptions = {
 
         // Check if user is a Vendor or Cashier
         const vendor = await Vendor.findOne({ email: credentials.email }).lean();
-        const cashier = await User.findOne({ email: credentials.email }).lean();
+        const cashier = await Cashier.findOne({ email: credentials.email }).lean();
 
         const user: any = vendor || cashier;
         if (!user) throw new Error("User not found");
@@ -35,44 +34,36 @@ const authOptions: NextAuthOptions = {
 
         return {
           id: user._id.toString(),
+          //id: user._id?.toString() || '',
           name: user.name,
           email: user.email,
           role: vendor ? "vendor" : "cashier",
-          vendorId: vendor ? user._id.toString() : user.vendorId, // Vendors use their own ID
+          vendorId: user.vendorId,
         };
       },
     }),
   ],
-//   callbacks: {
-//     async jwt({ token, user }: any) {
-//       if (user) {
-//         token.role = user.role;
-//         token.vendorId = user.vendorId;
-//       }
-//       return token;
-//     },
-//     async session({ session, token }: any) {
-//       if (session.user) {
-//         session.user.role = token.role;
-//         session.user.vendorId = token.vendorId;
-//       }
-//       return session;
-//     },
-//   },
-
 callbacks: {
     async jwt({ token, user }: any) {
       if (user) {
-        token.vendorId = user.vendorId ? new mongoose.Types.ObjectId(user.vendorId) : null; // ✅ Ensure ObjectId
-        token.role = user.role || "cashier"; // ✅ Add role
+        token.id = user.id;
+        token.name = user.name;
+        token.email = user.email;
+        token.role = user.role;
+        token.vendorId = user.vendorId; // No ObjectId conversion (cashier's vendorId is String)
       }
       return token;
     },
     async session({ session, token }: any) {
-      session.user.vendorId = token.vendorId || null;
-      session.user.role = token.role || "cashier"; // ✅ Include role in session
+      if (token && session.user) {
+        session.user.id = token.id;
+        session.user.name = token.name;
+        session.user.email = token.email;
+        session.user.role = token.role;
+        session.user.vendorId = token.vendorId || null; // Keep as String or null
+      }
       return session;
-    }
+    },
   },
   pages: {
     signIn: "/vendor/login",

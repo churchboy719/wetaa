@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { connectDB } from "@/app/lib/mongodb";
-import Vendor from "@/app/models/vendor";
+import Vendor, { IVendor } from "@/app/models/vendor";
+import { Types } from "mongoose";
 
 export async function POST(req: Request) {
   try {
@@ -17,8 +18,8 @@ export async function POST(req: Request) {
     // Hash password before saving
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create new vendor (vendorId is auto-generated)
-    const newVendor = new Vendor({
+    // Create new vendor
+    const newVendor: IVendor = new Vendor({
       name,
       businessName,
       address,
@@ -28,11 +29,22 @@ export async function POST(req: Request) {
       phone,
       packageType,
       voucherCode,
+      //vendorId: new Types.ObjectId(), // Ensure vendorId is set
+      role: "vendor", 
     });
 
     await newVendor.save();
 
-    return NextResponse.json({ message: "Vendor created successfully", vendor: newVendor }, { status: 201 });
+    return NextResponse.json({
+      message: "Vendor created successfully",
+      vendor: { 
+        id: (newVendor._id as Types.ObjectId).toString(),
+        name: newVendor.name,
+        email: newVendor.email,
+        vendorId: newVendor.vendorId,
+      }
+    }, { status: 201 });
+
   } catch (error) {
     console.error("Error creating vendor:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

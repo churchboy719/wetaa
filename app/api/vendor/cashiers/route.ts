@@ -1,170 +1,146 @@
-// import { NextResponse } from "next/server";
-// import { connectDB } from "@/app/lib/mongodb";
-// import Cashier from "@/app/models/cashier";
-// import bcrypt from "bcryptjs";
-
-// ✅ Create a new cashier (POST)
-// export async function POST(req: Request) {
-//   try {
-//     await connectDB();
-//     const { name, email, password, vendorId } = await req.json();
-
-//     // Validate request
-//     if (!name || !email || !password || !vendorId) {
-//       return NextResponse.json({ error: "All fields are required" }, { status: 400 });
-//     }
-
-//     // Check for duplicate email
-//     const existingCashier = await Cashier.findOne({ email });
-//     if (existingCashier) {
-//       return NextResponse.json({ error: "Email already in use" }, { status: 400 });
-//     }
-
-//     // Hash password
-//     const hashedPassword = await bcrypt.hash(password, 10);
-//     const newCashier = new Cashier({ name, email, password: hashedPassword, vendorId });
-
-//     // Save to DB
-//     await newCashier.save();
-//     return NextResponse.json({ message: "Cashier created successfully", cashier: newCashier }, { status: 201 });
-
-//   } catch (error: any) {
-//     console.error("Error creating cashier:", error);
-//     return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
-//   }
-// }
-
 import { NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
 import { connectDB } from "@/app/lib/mongodb";
 import Cashier from "@/app/models/cashier";
-import bcrypt from "bcryptjs";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import mongoose from "mongoose";
 
-// export async function POST(req: Request) {
-//   try {
-//     await connectDB();
-//     const { name, email, password, vendorId } = await req.json();
+connectDB(); // Ensure database is connected
 
-//     if (!vendorId) {
-//       return NextResponse.json({ error: "Vendor ID is required" }, { status: 400 });
-//     }
+// Type definition for request payloads
+interface CashierRequest {
+  name?: string;
+  email?: string;
+  password?: string;
+  cashierId?: string;
+}
 
-//     // Convert vendorId to ObjectId
-//     if (!mongoose.Types.ObjectId.isValid(vendorId)) {
-//       return NextResponse.json({ error: "Invalid Vendor ID" }, { status: 400 });
-//     }
-
-//     const hashedPassword = await bcrypt.hash(password, 10);
-//     const newCashier = new Cashier({
-//       name,
-//       email,
-//       password: hashedPassword,
-//       vendorId: new mongoose.Types.ObjectId(vendorId), // Convert vendorId to ObjectId
-//     });
-
-//     await newCashier.save();
-//     return NextResponse.json({ message: "Cashier created successfully", cashier: newCashier }, { status: 201 });
-
-//   } catch (error: any) {
-//     console.error("Error creating cashier:", error);
-//     return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
-//   }
-// }
-
-export async function POST(req: Request) {
+/**
+ * GET: Fetch all cashiers for the logged-in vendor
+ */
+export async function GET() {
   try {
-    await connectDB();
-    const { name, email, password, vendorId } = await req.json();
+    const session = await getServerSession(authOptions);
+    
+    // if (!session?.user || session.user.role !== "vendor") {
+    //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // }
 
-    if (!vendorId || !mongoose.Types.ObjectId.isValid(vendorId)) {
+    if (!session?.user?.vendorId || typeof session.user.vendorId !== "string") {
       return NextResponse.json({ error: "Invalid Vendor ID" }, { status: 400 });
     }
 
-    const objectIdVendorId = new mongoose.Types.ObjectId(vendorId); // ✅ Convert to ObjectId
+    const vendorId = session.user.vendorId as string;
+    if (!vendorId || typeof vendorId !== "string") {
+      return NextResponse.json({ error: "Invalid Vendor ID" }, { status: 400 });
+    }
+
+    const cashiers = await Cashier.find({ vendorId });
+    return NextResponse.json({ cashiers }, { status: 200 });
+  } catch (error) {
+    console.error("Error fetching cashiers:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+/**
+ * POST: Create a new cashier under the vendor
+ */
+export async function POST(req: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user || session.user.role !== "vendor") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { name, email, password }: CashierRequest = await req.json();
+    const vendorId = session.user.vendorId as string;
+
+    if (!name || !email || !password) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    if (!vendorId || typeof vendorId !== "string") {
+      return NextResponse.json({ error: "Invalid Vendor ID" }, { status: 400 });
+    }
+
+    const existingCashier = await Cashier.findOne({ email });
+    if (existingCashier) {
+      return NextResponse.json({ error: "Cashier already exists" }, { status: 400 });
+    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newCashier = new Cashier({ name, email, password: hashedPassword, vendorId: objectIdVendorId });
+    const newCashier = new Cashier({ name, email, password: hashedPassword, vendorId });
 
     await newCashier.save();
     return NextResponse.json({ message: "Cashier created successfully", cashier: newCashier }, { status: 201 });
   } catch (error) {
+    console.error("Error creating cashier:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
 
-
-// ✅ Get all cashiers for a vendor (GET)
-export async function GET(req: Request) {
-  try {
-    await connectDB();
-
-    const { searchParams } = new URL(req.url);
-    const vendorId = searchParams.get("vendorId");
-
-    if (!vendorId || !mongoose.Types.ObjectId.isValid(vendorId)) {
-      return NextResponse.json({ error: "Invalid Vendor ID" }, { status: 400 });
-    }
-
-    const objectIdVendorId = new mongoose.Types.ObjectId(vendorId);
-
-    const cashiers = await Cashier.find({ vendorId: objectIdVendorId });
-
-    return NextResponse.json({ cashiers }, { status: 200 });
-  } catch (error) {
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
-  }
-}
-
-
-// ✅ Delete a cashier (DELETE)
-export async function DELETE(req: Request) {
-  try {
-    await connectDB();
-    const { cashierId, vendorId } = await req.json();
-
-    if (!cashierId || !vendorId) {
-      return NextResponse.json({ error: "Cashier ID and Vendor ID are required" }, { status: 400 });
-    }
-
-    // Ensure cashier belongs to the vendor
-    const cashier = await Cashier.findOneAndDelete({ _id: cashierId, vendorId });
-    if (!cashier) {
-      return NextResponse.json({ error: "Cashier not found or unauthorized" }, { status: 404 });
-    }
-
-    return NextResponse.json({ message: "Cashier deleted successfully" }, { status: 200 });
-
-  } catch (error: any) {
-    console.error("Error deleting cashier:", error);
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
-  }
-}
-
-// ✅ Toggle `active` or `canPost` status (PATCH)
+/**
+ * PATCH: Update cashier details
+ */
 export async function PATCH(req: Request) {
   try {
-    await connectDB();
-    const { cashierId, vendorId, updateField, value } = await req.json();
-
-    if (!cashierId || !vendorId || !updateField) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user || session.user.role !== "vendor") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Ensure cashier belongs to the vendor
-    const updatedCashier = await Cashier.findOneAndUpdate(
-      { _id: cashierId, vendorId },
-      { [updateField]: value },
-      { new: true }
-    );
+    const { cashierId, name, email, password }: CashierRequest = await req.json();
 
+    if (!cashierId || !mongoose.Types.ObjectId.isValid(cashierId)) {
+      return NextResponse.json({ error: "Invalid Cashier ID" }, { status: 400 });
+    }
+
+    const updateData: Partial<CashierRequest> = {};
+    if (name) updateData.name = name;
+    if (email) updateData.email = email;
+    if (password) updateData.password = await bcrypt.hash(password, 10);
+
+    const updatedCashier = await Cashier.findByIdAndUpdate(cashierId, updateData, { new: true });
     if (!updatedCashier) {
-      return NextResponse.json({ error: "Cashier not found or unauthorized" }, { status: 404 });
+      return NextResponse.json({ error: "Cashier not found" }, { status: 404 });
     }
 
     return NextResponse.json({ message: "Cashier updated successfully", cashier: updatedCashier }, { status: 200 });
-
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error updating cashier:", error);
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+/**
+ * DELETE: Remove a cashier
+ */
+export async function DELETE(req: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user || session.user.role !== "vendor") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { cashierId }: CashierRequest = await req.json();
+
+    if (!cashierId || !mongoose.Types.ObjectId.isValid(cashierId)) {
+      return NextResponse.json({ error: "Invalid Cashier ID" }, { status: 400 });
+    }
+
+    const deletedCashier = await Cashier.findByIdAndDelete(cashierId);
+    if (!deletedCashier) {
+      return NextResponse.json({ error: "Cashier not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ message: "Cashier deleted successfully" }, { status: 200 });
+  } catch (error) {
+    console.error("Error deleting cashier:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
