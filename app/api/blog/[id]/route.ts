@@ -39,12 +39,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import Blog from '@/app/models/blog';
 import { connectDB } from '@/app/lib/mongodb';
 
-// This matches the required structure Next.js App Router expects for dynamic route handlers
 export async function GET(
   req: NextRequest,
-  context: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
-  const id = context.params.id;
+  const id = params.id;
 
   try {
     await connectDB();
