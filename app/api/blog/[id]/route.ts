@@ -34,15 +34,17 @@
 // }
 
 // app/api/blog/[id]/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import { connectDB } from '@/app/lib/mongodb';
-import Blog from '@/app/models/blog';
 
+import { NextRequest, NextResponse } from 'next/server';
+import Blog from '@/app/models/blog';
+import { connectDB } from '@/app/lib/mongodb';
+
+// This matches the required structure Next.js App Router expects for dynamic route handlers
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
-  const { id } = params;
+  const id = context.params.id;
 
   try {
     await connectDB();
