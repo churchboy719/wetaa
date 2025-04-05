@@ -54,7 +54,9 @@ import mongoose from "mongoose";
 import { MongoClient } from "mongodb";
 import "dotenv/config";
 
-const MONGODB_URI = process.env.MONGODB_URI!;
+//const MONGODB_URI = process.env.MONGODB_URI!;
+const MONGODB_URI = "mongodb+srv://churchboy719:julywisdom19@cluster0.3bmnp.mongodb.net/wetaa"
+
 if (!MONGODB_URI) {
   throw new Error("Please define MONGODB_URI in .env.local");
 }

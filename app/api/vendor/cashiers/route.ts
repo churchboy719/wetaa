@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { connectDB } from "@/app/lib/mongodb";
 import Cashier from "@/app/models/cashier";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import authOptions from "@/app/lib/authOptions";
 import mongoose from "mongoose";
 
 connectDB(); // Ensure database is connected

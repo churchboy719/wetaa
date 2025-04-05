@@ -7,4 +7,3 @@ export async function GET() {
   const blogs = await Blog.find().sort({ date: -1 });
   return NextResponse.json(blogs);
 }
-

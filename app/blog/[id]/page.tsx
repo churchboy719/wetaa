@@ -34,9 +34,9 @@ export default function BlogDetailPage() {
 
   return (
     <div className="p-10 bg-gray-50 min-h-screen">
-      <h1 className="text-4xl font-bold mb-4">{blog.title}</h1>
+      <h1 className="text-4xl font-bold mb-4 text-blacks">{blog.title}</h1>
       <p className="text-gray-500 mb-2">By {blog.author} on {new Date(blog.date).toLocaleDateString()}</p>
-      <div className="bg-white p-6 shadow rounded-lg">{blog.content}</div>
+      <div className="bg-white p-6 shadow rounded-lg text-black">{blog.content}</div>
     </div>
   );
 }
