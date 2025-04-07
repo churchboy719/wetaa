@@ -38,3 +38,18 @@
 //     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
 //   }
 // }
+
+
+import { NextResponse } from 'next/server'
+
+export async function POST(request: Request) {
+  try {
+    // Your logic here
+    return NextResponse.json({ canPost: true })
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Internal Server Error' },
+      { status: 500 }
+    )
+  }
+}

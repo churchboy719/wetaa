@@ -1,49 +1,30 @@
 // // app/api/blog/[id]/route.ts
-// import { NextRequest, NextResponse } from 'next/server';
+// import { NextResponse } from 'next/server';
 // import Blog from '@/app/models/blog';
 // import { connectDB } from '@/app/lib/mongodb';
 
-// interface RouteParams {
-//   params: {
-//     id: string;
-//   };
-// }
-
-// export async function GET(
-//   request: NextRequest,
-//   context: RouteParams // ❌ Not a Promise — just a plain object
-// ) {
-//   const { id } = context.params;
-
-//   try {
-//     await connectDB();
-//     const blog = await Blog.findById(id);
-
-//     if (!blog) {
-//       return NextResponse.json({ error: 'Blog not found' }, { status: 404 });
-//     }
-
-//     return NextResponse.json(blog);
-//   } catch (error) {
-//     console.error('Error fetching blog:', error);
-//     return NextResponse.json(
-//       { error: 'Internal server error' },
-//       { status: 500 }
-//     );
-//   }
+// export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+//   //const { id } = params;
+//   const id = (await params).id;
+  
+//   await connectDB();
+//   const blog = await Blog.findById(id);
+  
+//   return NextResponse.json(blog || { error: 'Not found' }, { 
+//     status: blog ? 200 : 404 
+//   });
 // }
 
 // app/api/blog/[id]/route.ts
-
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import Blog from '@/app/models/blog';
 import { connectDB } from '@/app/lib/mongodb';
 
 export async function GET(
-  req: NextRequest,
-  { params }: { params: { id: string } }
+  _request: Request,
+  context: { params: Promise<{ id: string }> }
 ) {
-  const id = params.id;
+  const { id } = await context.params;
 
   try {
     await connectDB();
@@ -53,7 +34,7 @@ export async function GET(
       return NextResponse.json({ error: 'Blog not found' }, { status: 404 });
     }
 
-    return NextResponse.json(blog);
+    return NextResponse.json(blog, { status: 200 });
   } catch (error) {
     console.error('Error fetching blog:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

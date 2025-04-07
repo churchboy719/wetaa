@@ -3,7 +3,6 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { urlFor } from "@/sanity/lib/image";
 import { FaPlus, FaMinus } from "react-icons/fa";
 import { createClient } from "@sanity/client";
 import { io, Socket } from "socket.io-client";
@@ -144,7 +143,7 @@ export default function InvoicePage() {
                   <div className="relative">
                     {product.image && product.image[0] ? (
                       <Image
-                        src={urlFor(product.image[0]).url()}
+                        src={product.image[0].asset.url}
                         alt={product.name}
                         width={100}
                         height={100}
