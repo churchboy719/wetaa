@@ -58,13 +58,13 @@ export default function LearnMore() {
         <section className="mb-10">
           <h2 className="text-3xl font-semibold text-gray-700 mb-6">For Customers</h2>
           <ul className="list-decimal list-inside space-y-4">
-            <li><span className="font-semibold">Arrival & QR Code:</span> Scan the QR code or enter the URL into your phone browser.</li>
-            <li><span className="font-semibold">Browse the Menu:</span> View the digital menu instantly.</li>
-            <li><span className="font-semibold">Place Your Order:</span> Select your food and submit your order easily.</li>
-            <li><span className="font-semibold">Real-Time Notification:</span> Your order is sent directly to the cashiers’ group chat.</li>
-            <li><span className="font-semibold">Order Attended Efficiently:</span> A cashier accepts the order and serves using a trolley.</li>
-            <li><span className="font-semibold">Payment and Invoice:</span> Receive a printed or digital invoice when ready.</li>
-            <li><span className="font-semibold">Exit Verification:</span> Security ensures valid payment before exit.</li>
+            <li><span className="font-semibold text-gray-500">Arrival & QR Code:</span> Scan the QR code or enter the URL into your phone browser.</li>
+            <li><span className="font-semibold text-gray-500">Browse the Menu:</span> View the digital menu instantly.</li>
+            <li><span className="font-semibold text-gray-500">Place Your Order:</span> Select your food and submit your order easily.</li>
+            <li><span className="font-semibold text-gray-500">Real-Time Notification:</span> Your order is sent directly to the cashiers’ group chat.</li>
+            <li><span className="font-semibold text-gray-500">Order Attended Efficiently:</span> A cashier accepts the order and serves using a trolley.</li>
+            <li><span className="font-semibold text-gray-500">Payment and Invoice:</span> Receive a printed or digital invoice when ready.</li>
+            <li><span className="font-semibold text-gray-500">Exit Verification:</span> Security ensures valid payment before exit.</li>
           </ul>
         </section>
 
@@ -72,11 +72,11 @@ export default function LearnMore() {
         <section className="mb-10">
           <h2 className="text-3xl font-semibold text-gray-700 mb-6">For Vendors</h2>
           <ul className="list-decimal list-inside space-y-4">
-            <li><span className="font-semibold">Vendor Registration:</span> Gain access to a dedicated dashboard.</li>
-            <li><span className="font-semibold">Manage Cashiers:</span> Add, edit, or remove cashiers.</li>
-            <li><span className="font-semibold">Manage Products:</span> Update your menu with ease.</li>
-            <li><span className="font-semibold">Track Orders:</span> Monitor real-time orders and performance.</li>
-            <li><span className="font-semibold">Daily Sales Reports:</span> Access transparent sales data.</li>
+            <li><span className="font-semibold text-gray-500">Vendor Registration:</span> Gain access to a dedicated dashboard.</li>
+            <li><span className="font-semibold text-gray-500">Manage Cashiers:</span> Add, edit, or remove cashiers.</li>
+            <li><span className="font-semibold text-gray-500">Manage Products:</span> Update your menu with ease.</li>
+            <li><span className="font-semibold text-gray-500">Track Orders:</span> Monitor real-time orders and performance.</li>
+            <li><span className="font-semibold text-gray-500">Daily Sales Reports:</span> Access transparent sales data.</li>
           </ul>
         </section>
 
