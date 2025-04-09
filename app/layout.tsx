@@ -6,6 +6,7 @@ import "./globals.css";
 import { SessionProvider } from "next-auth/react";
 import { metadata } from "./api/vendor/signup/metadata";
 import Notification from "./components/Notification";
+import Navbar from "./components/Navbar";
 
 
 const geistSans = Geist({
@@ -36,6 +37,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Notification />
+        <Navbar />
         {children}
       </body>
     </html>

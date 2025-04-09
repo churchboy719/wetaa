@@ -38,36 +38,6 @@ export default function VendorSignup() {
           }
         };
 
-  // const handleSubmit = async (e: any) => {
-  //   e.preventDefault();
-  //   if (!formData.packageType) {
-  //     alert("Please select a subscription type.");
-  //     return;
-  //   }
-  
-  //   try {
-  //     const response = await fetch("/api/payment/initiate", {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({
-  //         email: formData.email,
-  //         amount,
-  //         packageType: formData.packageType,
-  //       }),
-  //     });
-  
-  //     const data = await response.json();
-  //     if (response.ok) {
-  //       window.location.href = data.url; // Redirect to Paystack
-  //     } else {
-  //       alert(`Payment failed: ${data.error}`);
-  //     }
-  //   } catch (error) {
-  //     console.error("Payment Error:", error);
-  //     alert("An error occurred. Please try again.");
-  //   }
-  // };
-
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     
@@ -124,18 +94,18 @@ export default function VendorSignup() {
 
   return (
     <div className="max-w-lg mx-auto p-6 bg-white shadow-md rounded-lg">
-      <h1 className="text-2xl font-bold mb-4">Vendor Sign Up</h1>
+      <h1 className="text-2xl font-bold mb-4 text-gray-700">Vendor Sign Up</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <input type="text" name="name" placeholder="Full Name" required onChange={handleChange} />
-        <input type="text" name="businessName" placeholder="Business Name" required onChange={handleChange} />
-        <input type="text" name="address" placeholder="Business Address" required onChange={handleChange} />
-        <input type="text" name="businessType" placeholder="Business Type" required onChange={handleChange} />
-        <input type="email" name="email" placeholder="Email" required onChange={handleChange} />
-        <input type="password" name="password" placeholder="Password" required onChange={handleChange} />
-        <input type="text" name="phone" placeholder="Phone Number" required onChange={handleChange} />
+        <input type="text" name="name" placeholder="Full Name" className="text-gray-500" required onChange={handleChange} />
+        <input type="text" name="businessName" placeholder="Business Name" className="text-gray-500" required onChange={handleChange} />
+        <input type="text" name="address" placeholder="Business Address" className="text-gray-500" required onChange={handleChange} />
+        <input type="text" name="businessType" placeholder="Busissness Type" className="text-gray-500" required onChange={handleChange} />
+        <input type="email" name="email" placeholder="Email" className="text-gray-500" required onChange={handleChange} />
+        <input type="password" name="password" placeholder="Password" className="text-gray-500" required onChange={handleChange} />
+        <input type="text" name="phone" placeholder="Phone Number" className="text-gray-500" required onChange={handleChange} />
 
         <h3 className="text-gray-600">Select Subscription Type</h3>
-        <select name="packageType" className="w-full p-2 border rounded text-black" onChange={handleChange} required>
+        <select name="packageType" className="w-full p-2 border rounded text-gray-500" onChange={handleChange} required>
           <option value="trial_24hours">24 Hours Trial - Free</option>
             <optgroup label="Bronze">
             <option value="bronze_monthly">Bronze Monthly - $50</option>
@@ -153,7 +123,7 @@ export default function VendorSignup() {
 
 
         <p className="text-gray-600">Amount to be Paid: ${amount}</p>
-        <input type="text" name="voucherCode" placeholder="Voucher Code (Optional)" onChange={handleChange} />
+        <input type="text" name="voucherCode" placeholder="Voucher Code (Optional)" className="text-gray-500" onChange={handleChange} />
         <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded">Proceed to Payment</button>
       </form>
     </div>

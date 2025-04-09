@@ -51,7 +51,7 @@ const ContactUs = () => {
             value={formData.name}
             onChange={handleChange}
             placeholder="Your Name"
-            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-gray-700"
             required
           />
 
@@ -61,7 +61,7 @@ const ContactUs = () => {
             value={formData.email}
             onChange={handleChange}
             placeholder="Your Email"
-            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-gray-700"
             required
           />
 
@@ -71,7 +71,7 @@ const ContactUs = () => {
             onChange={handleChange}
             placeholder="Your Message"
             rows={6}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-gray-700"
             required
           ></textarea>
 
@@ -79,7 +79,7 @@ const ContactUs = () => {
             type="submit"
             className="w-full bg-blue-500 text-white p-3 rounded-lg font-semibold hover:bg-blue-600"
           >
-            Send Message
+            Send Messages
           </button>
         </form>
       </div>

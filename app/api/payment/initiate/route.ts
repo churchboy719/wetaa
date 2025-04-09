@@ -4,7 +4,8 @@ import axios from 'axios';
 import Payment from '@/app/models/payment';
 import { connectDB } from '@/app/lib/mongodb';
 
-const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
+//const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
+const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY || 'sk_live_fcd91faf2a71047c72a6c4f7aeb28bd1e918088a'; // Replace with your actual secret key
 
 export async function POST(req: Request) {
   try {
