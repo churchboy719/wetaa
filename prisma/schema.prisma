@@ -1,0 +1,742 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
+enum SessionStatus {
+  ACTIVE
+  REVOKED
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum MembershipStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+  REMOVED
+}
+
+enum StaffRole {
+  OWNER
+  MANAGER
+  CASHIER
+  WAITER
+  KITCHEN
+}
+
+enum BusinessStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum LocationStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum TableStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+  INACTIVE
+}
+
+enum QRCodeType {
+  MENU
+  TABLE
+  BUSINESS
+  TAKEOUT
+  DELIVERY
+  VOUCHER
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  READY
+  COMPLETED
+  CANCELLED
+}
+
+enum OrderEventType {
+  ORDER_CREATED
+  ORDER_UPDATED
+  ORDER_CONFIRMED
+  ORDER_PREPARING
+  ORDER_READY
+  PAYMENT_COMPLETED
+  ORDER_COMPLETED
+  ORDER_CANCELLED
+
+  MESSAGE
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  ONLINE
+  VOUCHER
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum TaxPricingMode {
+  TAX_INCLUSIVE
+  TAX_EXCLUSIVE
+}
+
+enum ProductMediaType {
+  IMAGE
+  VIDEO
+}
+
+enum MenuLayout {
+  GRID
+  LIST
+  COMPACT
+  EDITORIAL
+  FULL_IMAGE
+}
+
+enum ProductCardStyle {
+  STANDARD
+  MINIMAL
+  IMAGE_FOCUSED
+  COMPACT
+}
+
+enum CategoryStyle {
+  TABS
+  HORIZONTAL
+  SIDEBAR
+  DROPDOWN
+}
+
+enum ImageAspectRatio {
+  SQUARE
+  PORTRAIT
+  LANDSCAPE
+  AUTO
+}
+
+enum OrderType {
+  DINE_IN
+  TAKEOUT
+  DELIVERY
+}
+
+enum OrderSource {
+  QR
+  CASHIER
+  WAITER
+}
+
+// ============================================================
+// USER
+// ============================================================
+
+model User {
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  email        String     @unique
+  passwordHash String
+  firstName    String?
+  lastName     String?
+  phone        String?
+  image        String?
+  status       UserStatus @default(ACTIVE)
+
+  // Business ownership
+  ownedBusinesses Business[]
+
+  // Staff relationships
+  memberships StaffMembership[]
+
+  // Optional customer account
+  customer Customer?
+
+  sessions Session[]
+
+  staffInvitations StaffInvitation[]
+
+  // Orders created/entered by this user
+  createdOrders Order[] @relation("OrderCreatedBy")
+  createdOrderEvents OrderEvent[] @relation("OrderEventCreatedBy")
+  processedPayments Payment[] @relation("PaymentProcessedBy")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+// ============================================================
+// BUSINESS
+// ============================================================
+
+model Business {
+  id          String         @id @default(auto()) @map("_id") @db.ObjectId
+  ownerId     String         @db.ObjectId
+  name        String
+  slug        String         @unique
+  description String?
+  logo        String?
+  phone       String?
+  email       String?
+  website     String?
+  status      BusinessStatus @default(ACTIVE)
+
+  owner User @relation(fields: [ownerId], references: [id])
+
+  locations   Location[]
+  memberships StaffMembership[]
+  qrCodes     QRCode[]
+  orders      Order[]
+  invitations StaffInvitation[]
+  orderEvents OrderEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([status])
+}
+
+// ============================================================
+// LOCATION
+// ============================================================
+
+model Location {
+  id         String     @id @default(auto()) @map("_id") @db.ObjectId
+  businessId String     @db.ObjectId
+  name       String
+  address    String?
+  city       String?
+  postalCode String?
+  country    String?
+  latitude   Float?
+  longitude  Float?
+  phone      String?
+  timezone String @default("Europe/Berlin")
+currency String @default("EUR")
+status   LocationStatus @default(ACTIVE)
+
+  // Customer tipping configuration
+  tipsEnabled         Boolean @default(false)
+  suggestedTipAmounts Int[]  @default([])
+  allowCustomTip      Boolean @default(true)
+
+  // Tax configuration
+  taxEnabled     Boolean        @default(false)
+  taxPricingMode TaxPricingMode @default(TAX_INCLUSIVE)
+
+  business Business @relation(fields: [businessId], references: [id])
+
+  memberships StaffMembership[]
+  menus       Menu[]
+  tables      RestaurantTable[]
+  orders      Order[]
+  qrCodes     QRCode[]
+  invitations StaffInvitation[]
+  orderEvents OrderEvent[]
+  taxRules    TaxRule[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId])
+  @@index([status])
+}
+
+// ============================================================
+// STAFF MEMBERSHIP
+// ============================================================
+
+model StaffMembership {
+  id         String           @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String           @db.ObjectId
+  businessId String           @db.ObjectId
+  locationId String?          @db.ObjectId
+  role       StaffRole
+  status     MembershipStatus @default(INVITED)
+  isActive   Boolean          @default(false)
+
+  user     User      @relation(fields: [userId], references: [id])
+  business Business  @relation(fields: [businessId], references: [id])
+  location Location? @relation(fields: [locationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([businessId])
+  @@index([locationId])
+  @@index([role])
+  @@index([status])
+}
+
+model StaffInvitation {
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  businessId  String  @db.ObjectId
+  locationId  String? @db.ObjectId
+  invitedById String  @db.ObjectId
+
+  email  String
+  role   StaffRole
+  status InvitationStatus @default(PENDING)
+
+  tokenHash String   @unique
+  expiresAt DateTime
+
+  business  Business  @relation(fields: [businessId], references: [id])
+  location  Location? @relation(fields: [locationId], references: [id])
+  invitedBy User      @relation(fields: [invitedById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId])
+  @@index([locationId])
+  @@index([invitedById])
+  @@index([email])
+  @@index([status])
+  @@index([expiresAt])
+}
+
+// ============================================================
+// CUSTOMER
+// ============================================================
+
+model Customer {
+  id     String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId String? @unique @db.ObjectId
+
+  name  String?
+  phone String?
+  email String?
+
+  // Optional registered account
+  user User? @relation(fields: [userId], references: [id])
+
+  // Customer order history
+  orders Order[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([phone])
+  @@index([email])
+}
+
+// ============================================================
+// MENU
+// ============================================================
+
+model Menu {
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  locationId  String  @db.ObjectId
+  name        String
+  description String?
+  active      Boolean @default(true)
+
+  location   Location   @relation(fields: [locationId], references: [id])
+  categories Category[]
+
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  appearance MenuAppearance?
+
+  @@index([locationId])
+  @@index([active])
+}
+
+// ============================================================
+// CATEGORY
+// ============================================================
+
+model Category {
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  menuId      String  @db.ObjectId
+  name        String
+  description String?
+  image       String?
+  sortOrder   Int     @default(0)
+  active      Boolean @default(true)
+
+  menu     Menu      @relation(fields: [menuId], references: [id])
+  products Product[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([menuId])
+  @@index([active])
+  @@index([sortOrder])
+}
+
+model MenuAppearance {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  menuId String @unique @db.ObjectId
+
+  // Overall presentation
+  layout        MenuLayout       @default(GRID)
+  productCard   ProductCardStyle @default(STANDARD)
+  categoryStyle CategoryStyle    @default(TABS)
+
+  // Branding
+  primaryColor    String?
+  secondaryColor  String?
+  backgroundColor String?
+  textColor       String?
+
+  // Typography
+  headingFont String?
+  bodyFont    String?
+
+  // Product presentation
+  imageAspectRatio ImageAspectRatio @default(SQUARE)
+  showImages       Boolean          @default(true)
+  showDescriptions Boolean          @default(true)
+  showPrices       Boolean          @default(true)
+
+  // Branding
+  logoUrl       String?
+  coverImageUrl String?
+
+  menu Menu @relation(fields: [menuId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================================
+// PRODUCT
+// ============================================================
+
+model Product {
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  categoryId  String  @db.ObjectId
+  name        String
+  description String?
+
+  // Money stored as minor units.
+  // €10.00 = 1000
+  price    Int
+  currency String @default("EUR")
+
+  // Optional vendor-defined tax rule
+  taxRuleId String? @db.ObjectId
+
+  sortOrder Int     @default(0)
+  active    Boolean @default(true)
+  available Boolean @default(true)
+
+  category Category       @relation(fields: [categoryId], references: [id])
+  taxRule  TaxRule?       @relation(fields: [taxRuleId], references: [id])
+  media    ProductMedia[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([taxRuleId])
+  @@index([active])
+  @@index([available])
+  @@index([sortOrder])
+}
+
+model ProductMedia {
+  id        String           @id @default(auto()) @map("_id") @db.ObjectId
+  productId String           @db.ObjectId
+  type      ProductMediaType
+  url       String
+  thumbnail String?
+  sortOrder Int              @default(0)
+  active    Boolean          @default(true)
+
+  product Product @relation(fields: [productId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+  @@index([type])
+  @@index([sortOrder])
+  @@index([active])
+}
+
+// ============================================================
+// RESTAURANT TABLE
+// ============================================================
+
+model RestaurantTable {
+  id         String      @id @default(auto()) @map("_id") @db.ObjectId
+  locationId String      @db.ObjectId
+  name       String
+  number     Int?
+  capacity   Int?
+  status     TableStatus @default(AVAILABLE)
+
+  location Location @relation(fields: [locationId], references: [id])
+
+  orders  Order[]
+  qrCodes QRCode[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([locationId])
+  @@index([status])
+  @@index([number])
+}
+
+// ============================================================
+// QR CODE
+// ============================================================
+
+model QRCode {
+  id         String     @id @default(auto()) @map("_id") @db.ObjectId
+  businessId String     @db.ObjectId
+  locationId String?    @db.ObjectId
+  tableId    String?    @db.ObjectId
+  type       QRCodeType
+  token      String     @unique
+  target     String
+  active     Boolean    @default(true)
+
+  business Business         @relation(fields: [businessId], references: [id])
+  location Location?        @relation(fields: [locationId], references: [id])
+  table    RestaurantTable? @relation(fields: [tableId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId])
+  @@index([locationId])
+  @@index([tableId])
+  @@index([type])
+  @@index([active])
+}
+
+// ============================================================
+// ORDER
+// ============================================================
+
+model Order {
+  id          String @id @default(auto()) @map("_id") @db.ObjectId
+  orderNumber String @unique
+
+
+  businessId String  @db.ObjectId
+  locationId String  @db.ObjectId
+  customerId String? @db.ObjectId
+  tableId    String? @db.ObjectId
+
+  // How the customer receives the order
+  orderType OrderType @default(DINE_IN)
+
+  // How the order entered Wetaa
+  orderSource OrderSource @default(QR)
+
+  // User who created/entered the order
+  createdById String? @db.ObjectId
+
+  status OrderStatus @default(PENDING)
+
+  // Money stored as minor units.
+  // Example: €25.50 = 2550
+  subtotal Int
+tax      Int
+discount Int
+tip      Int @default(0)
+total    Int
+
+  currency String @default("EUR")
+
+  notes String?
+
+// Delivery details captured as a historical snapshot.
+// These remain attached to the order even if the customer's profile changes.
+deliveryName       String?
+deliveryPhone      String?
+deliveryEmail      String?
+deliveryAddress    String?
+deliveryCity       String?
+deliveryPostalCode String?
+deliveryCountry    String?
+deliveryLatitude  Float?
+deliveryLongitude Float?
+
+  items OrderItem[]
+  events OrderEvent[]
+
+  business Business         @relation(fields: [businessId], references: [id])
+  location Location         @relation(fields: [locationId], references: [id])
+  customer Customer?        @relation(fields: [customerId], references: [id])
+  table    RestaurantTable? @relation(fields: [tableId], references: [id])
+
+  createdBy User? @relation("OrderCreatedBy", fields: [createdById], references: [id])
+
+  payments Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId])
+  @@index([locationId])
+  @@index([customerId])
+  @@index([tableId])
+  @@index([orderType])
+  @@index([orderSource])
+  @@index([createdById])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderEvent {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  businessId String @db.ObjectId
+  locationId String @db.ObjectId
+  orderId    String? @db.ObjectId
+
+  type OrderEventType
+
+  message String?
+
+  createdById String? @db.ObjectId
+
+  metadata Json?
+
+  business Business @relation(fields: [businessId], references: [id])
+  location Location @relation(fields: [locationId], references: [id])
+  order    Order?   @relation(fields: [orderId], references: [id])
+
+  createdBy User? @relation("OrderEventCreatedBy", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([businessId])
+  @@index([locationId])
+  @@index([orderId])
+  @@index([type])
+  @@index([createdById])
+  @@index([createdAt])
+}
+// ============================================================
+// ORDER ITEM
+// ============================================================
+
+model OrderItem {
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
+  orderId   String @db.ObjectId
+  productId String @db.ObjectId
+
+  // Product snapshot
+  productName String
+  unitPrice   Int
+  quantity    Int
+  subtotal    Int
+
+  // Tax snapshot
+  taxRuleName String?
+  taxRate     Int
+  tax         Int
+
+  notes String?
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+// ============================================================
+// PAYMENT
+// ============================================================
+
+model Payment {
+  id                   String        @id @default(auto()) @map("_id") @db.ObjectId
+  orderId              String        @db.ObjectId
+  amount               Int
+  currency             String        @default("EUR")
+  method               PaymentMethod
+  status               PaymentStatus @default(PENDING)
+  transactionReference String?
+
+  processedById String? @db.ObjectId
+  processedBy User? @relation("PaymentProcessedBy", fields: [processedById], references: [id])
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([status])
+  @@index([method])
+  @@index([processedById])
+  @@index([createdAt])
+}
+model Session {
+  id        String        @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String        @db.ObjectId
+  tokenHash String        @unique
+  status    SessionStatus @default(ACTIVE)
+  expiresAt DateTime
+
+  user User @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([expiresAt])
+}
+
+model TaxRule {
+  id         String  @id @default(auto()) @map("_id") @db.ObjectId
+  locationId String  @db.ObjectId
+
+  name        String
+  rate        Int
+  active      Boolean @default(true)
+  isDefault   Boolean @default(false)
+
+  location Location @relation(fields: [locationId], references: [id])
+  products Product[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([locationId])
+  @@index([active])
+  @@index([isDefault])
+}

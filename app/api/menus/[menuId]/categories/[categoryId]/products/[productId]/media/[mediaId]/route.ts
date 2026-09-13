@@ -1,0 +1,309 @@
+import { NextRequest, NextResponse } from "next/server";
+import { ProductMediaType } from "@prisma/client";
+import { prisma } from "@/lib/db/prisma";
+import { requireLocationPermission } from "@/lib/auth/authorization";
+import {
+  permissions,
+  type Permission,
+} from "@/lib/auth/permissions";
+
+type RouteContext = {
+  params: Promise<{
+    menuId: string;
+    categoryId: string;
+    productId: string;
+    mediaId: string;
+  }>;
+};
+
+async function getAuthorizedMedia(
+  menuId: string,
+  categoryId: string,
+  productId: string,
+  mediaId: string,
+  permission: Permission,
+) {
+  const media = await prisma.productMedia.findUnique({
+    where: {
+      id: mediaId,
+    },
+    include: {
+      product: {
+        include: {
+          category: {
+            include: {
+              menu: {
+                include: {
+                  location: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!media) {
+    return {
+      error: NextResponse.json(
+        {
+          success: false,
+          error: "Media not found",
+        },
+        { status: 404 },
+      ),
+    };
+  }
+
+  const category = media.product.category;
+  const menu = category.menu;
+
+  if (
+    category.id !== categoryId ||
+    menu.id !== menuId ||
+    media.product.id !== productId
+  ) {
+    return {
+      error: NextResponse.json(
+        {
+          success: false,
+          error: "Media does not belong to the specified product",
+        },
+        { status: 404 },
+      ),
+    };
+  }
+
+  await requireLocationPermission(
+    menu.location.businessId,
+    menu.locationId,
+    permission,
+  );
+
+  return {
+    media,
+    menu,
+  };
+}
+
+export async function GET(
+  _request: NextRequest,
+  context: RouteContext,
+) {
+  try {
+    const { menuId, categoryId, productId, mediaId } = await context.params;
+
+    const result = await getAuthorizedMedia(
+      menuId,
+      categoryId,
+      productId,
+      mediaId,
+      permissions.menu.view,
+    );
+
+    if (result.error) {
+      return result.error;
+    }
+
+    return NextResponse.json({
+      success: true,
+      media: result.media,
+    });
+  } catch (error) {
+    console.error("GET media error:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to fetch media",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  context: RouteContext,
+) {
+  try {
+    const { menuId, categoryId, productId, mediaId } = await context.params;
+
+    const result = await getAuthorizedMedia(
+      menuId,
+      categoryId,
+      productId,
+      mediaId,
+      permissions.menu.manage,
+    );
+
+    if (result.error) {
+      return result.error;
+    }
+
+    const body = await request.json();
+
+    const data: {
+      type?: ProductMediaType;
+      url?: string;
+      thumbnail?: string | null;
+      sortOrder?: number;
+      active?: boolean;
+    } = {};
+
+    if (body.type !== undefined) {
+      if (
+        body.type !== ProductMediaType.IMAGE &&
+        body.type !== ProductMediaType.VIDEO
+      ) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "type must be IMAGE or VIDEO",
+          },
+          { status: 400 },
+        );
+      }
+
+      data.type = body.type;
+    }
+
+    if (body.url !== undefined) {
+      if (typeof body.url !== "string" || !body.url.trim()) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "url must be a non-empty string",
+          },
+          { status: 400 },
+        );
+      }
+
+      data.url = body.url.trim();
+    }
+
+    if (body.thumbnail !== undefined) {
+      if (
+        body.thumbnail !== null &&
+        (typeof body.thumbnail !== "string" || !body.thumbnail.trim())
+      ) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "thumbnail must be a non-empty string or null",
+          },
+          { status: 400 },
+        );
+      }
+
+      data.thumbnail =
+        body.thumbnail === null ? null : body.thumbnail.trim();
+    }
+
+    if (body.sortOrder !== undefined) {
+      if (
+        typeof body.sortOrder !== "number" ||
+        !Number.isInteger(body.sortOrder)
+      ) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "sortOrder must be an integer",
+          },
+          { status: 400 },
+        );
+      }
+
+      data.sortOrder = body.sortOrder;
+    }
+
+    if (body.active !== undefined) {
+      if (typeof body.active !== "boolean") {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "active must be a boolean",
+          },
+          { status: 400 },
+        );
+      }
+
+      data.active = body.active;
+    }
+
+    if (Object.keys(data).length === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "No valid fields provided for update",
+        },
+        { status: 400 },
+      );
+    }
+
+    const media = await prisma.productMedia.update({
+      where: {
+        id: mediaId,
+      },
+      data,
+    });
+
+    return NextResponse.json({
+      success: true,
+      media,
+    });
+  } catch (error) {
+    console.error("PATCH media error:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to update media",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(
+  _request: NextRequest,
+  context: RouteContext,
+) {
+  try {
+    const { menuId, categoryId, productId, mediaId } = await context.params;
+
+    const result = await getAuthorizedMedia(
+      menuId,
+      categoryId,
+      productId,
+      mediaId,
+      permissions.menu.manage,
+    );
+
+    if (result.error) {
+      return result.error;
+    }
+
+    await prisma.productMedia.delete({
+      where: {
+        id: mediaId,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Media deleted successfully",
+    });
+  } catch (error) {
+    console.error("DELETE media error:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to delete media",
+      },
+      { status: 500 },
+    );
+  }
+}
