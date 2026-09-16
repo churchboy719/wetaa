@@ -1,4 +1,7 @@
-import { OrderStatus, PaymentStatus } from "@prisma/client";
+import {
+  OrderStatus,
+  PaymentStatus,
+} from "@prisma/client";
 
 import { prisma } from "@/lib/db/prisma";
 
@@ -34,25 +37,51 @@ export async function getSalesSummary({
       total: true,
       paidAmount: true,
       currency: true,
+      orderType: true,
+      items: {
+        select: {
+          productId: true,
+          productName: true,
+          quantity: true,
+          subtotal: true,
+          tax: true,
+        },
+      },
     },
   });
 
-  const payments = await prisma.payment.findMany({
-    where: {
-      order: {
-        businessId,
-        locationId,
-      },
-      status: PaymentStatus.COMPLETED,
-      createdAt: {
-        gte: from,
-        lt: to,
-      },
-    },
-    select: {
-      amount: true,
-    },
-  });
+  const orderIds = orders.map((order) => order.id);
+
+  const payments =
+    orderIds.length > 0
+      ? await prisma.payment.findMany({
+          where: {
+            orderId: {
+              in: orderIds,
+            },
+            status: PaymentStatus.COMPLETED,
+            createdAt: {
+              gte: from,
+              lt: to,
+            },
+          },
+          select: {
+            id: true,
+            orderId: true,
+            amount: true,
+            method: true,
+            processedById: true,
+           processedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            },
+           },
+          },
+        })
+      : [];
 
   const orderCount = orders.length;
 
@@ -92,15 +121,175 @@ export async function getSalesSummary({
     0
   );
 
+  // ----------------------------------------------------------
+  // Payment method breakdown
+  // ----------------------------------------------------------
+
+  const paymentMethods = new Map<
+    string,
+    {
+      method: string;
+      amount: number;
+      transactionCount: number;
+    }
+  >();
+
+  for (const payment of payments) {
+    const existing = paymentMethods.get(payment.method);
+
+    if (existing) {
+      existing.amount += payment.amount;
+      existing.transactionCount += 1;
+    } else {
+      paymentMethods.set(payment.method, {
+        method: payment.method,
+        amount: payment.amount,
+        transactionCount: 1,
+      });
+    }
+  }
+
+  // ----------------------------------------------------------
+  // Order type breakdown
+  // ----------------------------------------------------------
+
+  const orderTypes = new Map<
+    string,
+    {
+      orderType: string;
+      orderCount: number;
+      totalSales: number;
+    }
+  >();
+
+  for (const order of orders) {
+    const existing = orderTypes.get(order.orderType);
+
+    if (existing) {
+      existing.orderCount += 1;
+      existing.totalSales += order.total;
+    } else {
+      orderTypes.set(order.orderType, {
+        orderType: order.orderType,
+        orderCount: 1,
+        totalSales: order.total,
+      });
+    }
+  }
+
+  // ----------------------------------------------------------
+  // Product breakdown
+  // ----------------------------------------------------------
+
+  const products = new Map<
+    string,
+    {
+      productId: string;
+      productName: string;
+      quantity: number;
+      subtotal: number;
+      tax: number;
+      total: number;
+    }
+  >();
+
+  for (const order of orders) {
+    for (const item of order.items) {
+      const existing = products.get(item.productId);
+
+      const itemTotal =
+        item.subtotal + item.tax;
+
+      if (existing) {
+        existing.quantity += item.quantity;
+        existing.subtotal += item.subtotal;
+        existing.tax += item.tax;
+        existing.total += itemTotal;
+      } else {
+        products.set(item.productId, {
+          productId: item.productId,
+          productName: item.productName,
+          quantity: item.quantity,
+          subtotal: item.subtotal,
+          tax: item.tax,
+          total: itemTotal,
+        });
+      }
+    }
+  }
+
+  // ----------------------------------------------------------
+  // Cashier breakdown
+  // ----------------------------------------------------------
+
+  const cashiers = new Map<
+    string,
+    {
+      userId: string | null;
+      name: string | null;
+      email: string | null;
+      amountCollected: number;
+      transactionCount: number;
+    }
+  >();
+
+  for (const payment of payments) {
+    const key =
+      payment.processedById ?? "UNKNOWN";
+
+    const existing = cashiers.get(key);
+
+    if (existing) {
+      existing.amountCollected += payment.amount;
+      existing.transactionCount += 1;
+    } else {
+      cashiers.set(key, {
+        userId: payment.processedById,
+        name: payment.processedBy
+  ? [payment.processedBy.firstName, payment.processedBy.lastName]
+      .filter(Boolean)
+      .join(" ") || null
+  : null,
+email: payment.processedBy?.email ?? null,
+        amountCollected: payment.amount,
+        transactionCount: 1,
+      });
+    }
+  }
+
   return {
-    orderCount,
-    subtotal,
-    tax,
-    discounts,
-    tips,
-    totalSales,
-    collectedAmount,
-    outstandingAmount,
-    currency: orders[0]?.currency ?? null,
+    summary: {
+      orderCount,
+      subtotal,
+      tax,
+      discounts,
+      tips,
+      totalSales,
+      collectedAmount,
+      outstandingAmount,
+      currency: orders[0]?.currency ?? null,
+    },
+
+    paymentMethods: Array.from(
+      paymentMethods.values()
+    ),
+
+    orderTypes: Array.from(
+      orderTypes.values()
+    ),
+
+    products: Array.from(
+      products.values()
+    ).sort(
+      (a, b) => b.total - a.total
+    ),
+
+    cashiers: Array.from(
+      cashiers.values()
+    ).sort(
+      (a, b) =>
+        b.amountCollected -
+        a.amountCollected
+    ),
   };
 }
